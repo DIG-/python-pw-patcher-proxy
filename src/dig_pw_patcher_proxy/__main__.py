@@ -1,4 +1,7 @@
 import sys
 
-print("Hello World")
+from .arguments import Arguments
+
+arguments = Arguments.parse()
+print(arguments)
 sys.exit(0)
