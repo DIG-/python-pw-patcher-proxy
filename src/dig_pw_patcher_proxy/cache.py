@@ -1,4 +1,5 @@
 from pathlib import Path, PurePath
+from shutil import rmtree
 from typing import AnyStr
 from uuid import uuid4
 
@@ -16,6 +17,10 @@ class Cache:
         if not self.path.exists():
             self.log.debug("Creating cache dir")
             self.path.mkdir(parents=True)
+        if (self.path / Cache.TEMP_DIR).exists():
+            self.log.debug("Clear cache temp dir")
+            rmtree(self.path / Cache.TEMP_DIR)
+        (self.path / Cache.TEMP_DIR).mkdir()
 
     def new_temp_file(self) -> Path:
         temp = self.path / Cache.TEMP_DIR / str(uuid4())
@@ -25,7 +30,7 @@ class Cache:
 
     def move(self, temp: Path, dest: PurePath | AnyStr):
         _dest = self.path / PurePath(dest)
-        self.log(f"Moving {temp} to {_dest}")
+        self.log.debug(f"Moving {temp} to {_dest}")
         if not _dest.parent.exists():
             _dest.parent.mkdir(parents=True)
         temp.rename(_dest)
