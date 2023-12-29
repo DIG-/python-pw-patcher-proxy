@@ -31,4 +31,7 @@ class Cache:
         temp.rename(_dest)
 
     def exists(self, filename: PurePath | AnyStr) -> bool:
-        return (self.path / PurePath(filename)).exists()
+        return self.get(filename).exists()
+
+    def get(self, filename: PurePath | AnyStr) -> Path:
+        return self.path / PurePath(filename)

@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from shutil import copyfileobj
 from typing import Any
 
 from .cache import Cache
@@ -19,6 +20,16 @@ class _Handler(BaseHTTPRequestHandler):
         self.log.debug(f"{self.address_string()} - {format % args}")
 
     def do_GET(self):  # pylint: disable=invalid-name
+        cached = self.cache.get(self.path[1:])
+        if cached.exists() and not cached.is_dir():
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Length", f"{cached.stat().st_size}")
+            self.send_header("Content-Type", "application/octet-stream")
+            self.end_headers()
+            with cached.open(mode="rb") as file:
+                copyfileobj(file, self.wfile)
+            return
+
         self.send_response(HTTPStatus.NOT_FOUND)
         self.send_header("Content-Length", "0")
         self.end_headers()
