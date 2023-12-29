@@ -1,6 +1,5 @@
 from pathlib import Path, PurePath
 from shutil import rmtree
-from typing import AnyStr
 from uuid import uuid4
 
 from .log import Log
@@ -34,15 +33,15 @@ class Cache:
         self.path.mkdir(parents=True)
         (self.path / Cache.TEMP_DIR).mkdir()
 
-    def move(self, temp: Path, dest: PurePath | AnyStr):
+    def move(self, temp: Path, dest: PurePath | str):
         _dest = self.path / PurePath(dest)
         self.log.debug(f"Moving {temp} to {_dest}")
         if not _dest.parent.exists():
             _dest.parent.mkdir(parents=True)
         temp.rename(_dest)
 
-    def exists(self, filename: PurePath | AnyStr) -> bool:
+    def exists(self, filename: PurePath | str) -> bool:
         return self.get(filename).exists()
 
-    def get(self, filename: PurePath | AnyStr) -> Path:
+    def get(self, filename: PurePath | str) -> Path:
         return self.path / PurePath(filename)
