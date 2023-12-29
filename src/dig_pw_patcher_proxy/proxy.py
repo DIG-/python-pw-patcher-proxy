@@ -2,6 +2,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from shutil import copyfileobj
 from typing import Any
+from urllib.request import urlopen
 
 from .cache import Cache
 from .downloader import Downloader
@@ -20,7 +21,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.log.debug(f"{self.address_string()} - {format % args}")
 
     def do_GET(self):  # pylint: disable=invalid-name
-        cached = self.cache.get(self.path[1:])
+        path = self.path[1:]
+        cached = self.cache.get(path)
         if cached.exists() and not cached.is_dir():
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Length", f"{cached.stat().st_size}")
@@ -30,9 +32,14 @@ class _Handler(BaseHTTPRequestHandler):
                 copyfileobj(file, self.wfile)
             return
 
-        self.send_response(HTTPStatus.NOT_FOUND)
-        self.send_header("Content-Length", "0")
-        self.end_headers()
+        try:
+            with urlopen(f"{self.original_url}{path}") as content:
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "application/octet-stream")
+                self.end_headers()
+                copyfileobj(content, self.wfile)
+        except BaseException as e:  # pylint: disable=broad-exception-caught
+            self.send_error(HTTPStatus.BAD_GATEWAY, explain=str(e))
 
 
 class Proxy:
