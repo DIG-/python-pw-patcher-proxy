@@ -87,7 +87,7 @@ class Downloader:
         for line in content.splitlines():
             if line.startswith("#"):
                 continue
-            elif line.startswith("-----"):
+            if line.startswith("-----"):
                 break
             (_, url) = line.split()
             if url.startswith("/"):
@@ -130,24 +130,17 @@ class Downloader:
         self.log.debug(f"Caching {url}")
         connection = self.connections.get()
         connection.request("GET", f"{self.path}element/element/{path}", headers={"Host": self.host, "Accept": "*/*"})
-        with connection.getresponse() as response:
-            if response.status != HTTPStatus.OK:
-                if response.closed:
-                    self.log.warning("Connection was closed")
-                    self.connections.release(None)
-                else:
-                    self.connections.release(connection)
-                return False
-            temp = self.cache.new_temp_file()
-            with open(temp, mode="wb") as file:
-                copyfileobj(response, file)
-            if response.closed:
-                self.log.warning("Connection was closed")
-                self.connections.release(None)
-            else:
-                self.connections.release(connection)
-            self.cache.move(temp, path)
-            return True
+        response = connection.getresponse()
+        if response.status != HTTPStatus.OK:
+            response.close()
+            self.connections.release(connection)
+            return False
+        temp = self.cache.new_temp_file()
+        with open(temp, mode="wb") as file:
+            copyfileobj(response, file)
+        self.connections.release(connection)
+        self.cache.move(temp, path)
+        return True
 
 
 # GET /element/version
