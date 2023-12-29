@@ -1,4 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
+from shutil import copyfileobj
 from typing import List
 from urllib.request import urlopen
 
@@ -14,6 +16,8 @@ class Downloader:
         self.server = server
         self.jobs = jobs
         self.log = Log.get("downloader")
+        self.executor: ThreadPoolExecutor | None = None
+        self.current: str | None = None
         current = self.cache.get(Downloader.CURRENT)
         if not current.exists():
             return
@@ -24,6 +28,9 @@ class Downloader:
             self.start(version)
 
     def start(self, version: str):
+        if version == self.current:
+            return
+        self.stop()
         self.log.debug(f"Getting version update {version}")
         with urlopen(f"{self.server}element/{version}.inc") as response:
             if response.status != HTTPStatus.OK:
@@ -32,6 +39,7 @@ class Downloader:
             content: str = response.read().decode("utf-8")
         with open(self.cache.get(Downloader.CURRENT), mode="w", encoding="utf-8") as file:
             file.write(version)
+        self.current = version
         self.log.info(f"Start caching update {version}")
         urls: List[str] = []
         last_url = ""
@@ -47,8 +55,38 @@ class Downloader:
             else:
                 urls.append(f"{last_url}/{url}")
 
-        for url in urls:
-            self.log.debug(f"Url: {url}")
+        self.executor = ThreadPoolExecutor(max_workers=self.jobs)
+        downloads = self.executor.map(self.download, urls)
+        self.executor.submit(lambda x: x.restart() if not all(downloads) else None, self)
+
+    def restart(self):
+        if not self.current:
+            self.log.error("Can not restart download")
+            return
+        self.log.warning("Restart cache due to missing files")
+        self.start(self.current)
+
+    def stop(self):
+        if not self.executor:
+            return
+        self.log.info("Stopping downloader")
+        self.executor.shutdown(wait=True, cancel_futures=True)
+        self.executor = None
+        self.current = None
+
+    def download(self, url: str) -> bool:
+        path = url[1:]
+        if self.cache.exists(path):
+            return True
+        self.log.debug(f"Caching {url}")
+        with urlopen(f"{self.server}element/element/{path}") as response:
+            if response.status != HTTPStatus.OK:
+                return False
+            temp = self.cache.new_temp_file()
+            with open(temp, mode="wb") as file:
+                copyfileobj(response, file)
+            self.cache.move(temp, path)
+            return True
 
 
 # GET /element/version
