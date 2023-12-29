@@ -47,14 +47,13 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 class Proxy:
-    def __init__(self, cache: Cache, downloader: Downloader, server: str, port: int):
+    def __init__(self, cache: Cache, downloader: Downloader, server: str, bind: str, port: int):
         self.cache = cache
         self.downloader = downloader
         self.server = server
-        self.port = port
         self.log = Log.get("proxy")
-        self.log.info(f"Initialize server on 127.0.0.1:{port}")
-        self.daemon = ThreadingHTTPServer(server_address=("127.0.0.1", port), RequestHandlerClass=self._handler)
+        self.log.info(f"Initialize server on {bind}:{port}")
+        self.daemon = ThreadingHTTPServer(server_address=(bind, port), RequestHandlerClass=self._handler)
 
     def run(self):
         try:
