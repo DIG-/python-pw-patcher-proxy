@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from re import search as re_search
 from shutil import copyfileobj
 from typing import Any
 from urllib.request import urlopen
@@ -33,6 +34,9 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
+            found = re_search(r"element/(v-[\d]+).inc", path)
+            if found:
+                self.downloader.start(found.group(1))
             with urlopen(f"{self.original_url}{path}") as content:
                 self.send_response(HTTPStatus.OK)
                 self.send_header("Content-Type", "application/octet-stream")
