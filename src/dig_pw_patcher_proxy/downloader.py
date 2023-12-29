@@ -57,7 +57,7 @@ class Downloader:
 
         self.executor = ThreadPoolExecutor(max_workers=self.jobs)
         downloads = self.executor.map(self.download, urls)
-        self.executor.submit(lambda x: x.restart() if not all(downloads) else None, self)
+        self.executor.submit(lambda x: x.restart() if not all(downloads) else x.complete(), self)
 
     def restart(self):
         if not self.current:
@@ -73,6 +73,11 @@ class Downloader:
         self.executor.shutdown(wait=True, cancel_futures=True)
         self.executor = None
         self.current = None
+
+    def complete(self):
+        self.log.info("Caching completed")
+        self.current = None
+        self.cache.get(Downloader.CURRENT).unlink()
 
     def download(self, url: str) -> bool:
         path = url[1:]
