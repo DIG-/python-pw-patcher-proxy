@@ -53,7 +53,12 @@ class Proxy:
         self.daemon = ThreadingHTTPServer(server_address=("127.0.0.1", port), RequestHandlerClass=self._handler)
 
     def run(self):
-        self.daemon.serve_forever()
+        try:
+            self.daemon.serve_forever()
+        except KeyboardInterrupt:
+            self.log.info("Server stopped by user")
+        except:  # pylint: disable=bare-except
+            self.log.exception("Server stopped")
 
     def _handler(self, *args, **kwargs) -> _Handler:
         return _Handler(*args, cache=self.cache, downloader=self.downloader, server=self.server, **kwargs)
