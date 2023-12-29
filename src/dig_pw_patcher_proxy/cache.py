@@ -28,6 +28,12 @@ class Cache:
             temp = self.path / Cache.TEMP_DIR / str(uuid4())
         return temp
 
+    def clear(self):
+        self.log.warning("Clear entire cache")
+        rmtree(self.path)
+        self.path.mkdir(parents=True)
+        (self.path / Cache.TEMP_DIR).mkdir()
+
     def move(self, temp: Path, dest: PurePath | AnyStr):
         _dest = self.path / PurePath(dest)
         self.log.debug(f"Moving {temp} to {_dest}")

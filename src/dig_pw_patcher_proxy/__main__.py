@@ -9,6 +9,8 @@ from .proxy import Proxy
 arguments = Arguments.parse()
 Log.initialize(arguments.verbose)
 cache = Cache(path=arguments.cache)
+if arguments.clear_cache:
+    cache.clear()
 downloader = Downloader(cache=cache, server=arguments.server, jobs=arguments.jobs)
 proxy = Proxy(cache=cache, downloader=downloader, server=arguments.server, bind=arguments.bind, port=arguments.port)
 proxy.run()
