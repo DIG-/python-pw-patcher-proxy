@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - feature/simple-test
   pull_request:
 
 concurrency:
