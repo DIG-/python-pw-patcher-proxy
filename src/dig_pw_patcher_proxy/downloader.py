@@ -1,5 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
+from http.client import HTTPConnection, HTTPSConnection
+from queue import Empty, Full, LifoQueue
 from shutil import copyfileobj
 from typing import List
 from urllib.request import urlopen
@@ -8,14 +10,53 @@ from .cache import Cache
 from .log import Log
 
 
+class _ConnectionPool:
+    def __init__(self, secure: bool, host: str, size: int):
+        self.size = size + 2
+        self.secure = secure
+        self.host = host
+        self.stack: LifoQueue[HTTPConnection] = LifoQueue(maxsize=self.size)
+
+    def start(self):
+        try:
+            while True:
+                self.release(None, False)
+        except Full:
+            pass
+
+    def stop(self):
+        try:
+            while True:
+                connection = self.get(False)
+                connection.close()
+        except Empty:
+            pass
+
+    def get(self, block: bool = True) -> HTTPConnection:
+        return self.stack.get(block=block)
+
+    def release(self, connection: HTTPConnection | None, block: bool = True):
+        if not connection:
+            if self.secure:
+                connection = HTTPSConnection(self.host)
+            else:
+                connection = HTTPConnection(self.host)
+        self.stack.put(connection, block=block)
+
+
 class Downloader:
     CURRENT = "downloader-current"
 
     def __init__(self, cache: Cache, server: str, jobs: int):
         self.cache = cache
         self.server = server
+        self.host = server.split("/")[2]
+        self.path = "/" + "/".join(server.split("/")[3:])
+        if not self.path.endswith("/"):
+            self.path = self.path + "/"
         self.jobs = jobs
         self.log = Log.get("downloader")
+        self.connections = _ConnectionPool(server.startswith("https"), self.host, self.jobs)
         self.executor: ThreadPoolExecutor | None = None
         self.current: str | None = None
         current = self.cache.get(Downloader.CURRENT)
@@ -46,7 +87,7 @@ class Downloader:
         for line in content.splitlines():
             if line.startswith("#"):
                 continue
-            elif line.startswith("-----"):
+            if line.startswith("-----"):
                 break
             (_, url) = line.split()
             if url.startswith("/"):
@@ -55,6 +96,7 @@ class Downloader:
             else:
                 urls.append(f"{last_url}/{url}")
 
+        self.connections.start()
         self.executor = ThreadPoolExecutor(max_workers=self.jobs)
         downloads = self.executor.map(self.download, urls)
         self.executor.submit(lambda x: x.restart() if not all(downloads) else x.complete(), self)
@@ -71,11 +113,13 @@ class Downloader:
             return
         self.log.info("Stopping downloader")
         self.executor.shutdown(wait=True, cancel_futures=True)
+        self.connections.stop()
         self.executor = None
         self.current = None
 
     def complete(self):
         self.log.info("Caching completed")
+        self.connections.stop()
         self.current = None
         self.cache.get(Downloader.CURRENT).unlink()
 
@@ -84,14 +128,19 @@ class Downloader:
         if self.cache.exists(path):
             return True
         self.log.debug(f"Caching {url}")
-        with urlopen(f"{self.server}element/element/{path}") as response:
-            if response.status != HTTPStatus.OK:
-                return False
-            temp = self.cache.new_temp_file()
-            with open(temp, mode="wb") as file:
-                copyfileobj(response, file)
-            self.cache.move(temp, path)
-            return True
+        connection = self.connections.get()
+        connection.request("GET", f"{self.path}element/element/{path}", headers={"Host": self.host, "Accept": "*/*"})
+        response = connection.getresponse()
+        if response.status != HTTPStatus.OK:
+            response.close()
+            self.connections.release(connection)
+            return False
+        temp = self.cache.new_temp_file()
+        with open(temp, mode="wb") as file:
+            copyfileobj(response, file)
+        self.connections.release(connection)
+        self.cache.move(temp, path)
+        return True
 
 
 # GET /element/version

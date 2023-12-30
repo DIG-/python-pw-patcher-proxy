@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import gettempdir
 
 __all__ = ["Arguments"]
 
@@ -33,8 +34,8 @@ class Arguments:
     def default() -> "Arguments":
         return Arguments(
             server="http://fpatch3.perfectworld.com.br/CPW/",
-            cache=Path("cache"),
-            jobs=8,
+            cache=Path(gettempdir()) / "pw_patcher_proxy",
+            jobs=16,
             bind="127.0.0.1",
             port=8080,
             verbose=0,
