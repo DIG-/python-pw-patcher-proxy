@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import gettempdir
 
 __all__ = ["Arguments"]
 
@@ -21,7 +22,9 @@ class Arguments:
         parser.add_argument(
             "-s", "--server", default="http://fpatch3.perfectworld.com.br/CPW/", help="Original patch server url"
         )
-        parser.add_argument("-c", "--cache", default="cache", type=Path, help="Directory to cache files")
+        parser.add_argument(
+            "-c", "--cache", default=Path(gettempdir()) / "pw_patcher_proxy", type=Path, help="Directory to cache files"
+        )
         parser.add_argument("--clear-cache", action="store_true", help="Clear entire cache before start")
         parser.add_argument("-j", "--jobs", default=16, type=int, help="Number of parallel cache download")
         parser.add_argument("--bind", default="127.0.0.1", type=str, help="Bind proxy server to")
