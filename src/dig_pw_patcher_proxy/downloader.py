@@ -3,7 +3,7 @@ from http import HTTPStatus
 from http.client import HTTPConnection, HTTPSConnection
 from queue import Empty, Full, LifoQueue
 from shutil import copyfileobj
-from typing import List
+from typing import List, Optional
 from urllib.request import urlopen
 
 from .cache import Cache
@@ -35,7 +35,7 @@ class _ConnectionPool:
     def get(self, block: bool = True) -> HTTPConnection:
         return self.stack.get(block=block)
 
-    def release(self, connection: HTTPConnection | None, block: bool = True):
+    def release(self, connection: Optional[HTTPConnection], block: bool = True):
         if not connection:
             if self.secure:
                 connection = HTTPSConnection(self.host)
@@ -57,12 +57,12 @@ class Downloader:
         self.jobs = jobs
         self.log = Log.get("downloader")
         self.connections = _ConnectionPool(server.startswith("https"), self.host, self.jobs)
-        self.executor: ThreadPoolExecutor | None = None
-        self.current: str | None = None
+        self.executor: Optional[ThreadPoolExecutor] = None
+        self.current: Optional[str] = None
         current = self.cache.get(Downloader.CURRENT)
         if not current.exists():
             return
-        version: str | None = None
+        version: Optional[str] = None
         with open(current, mode="r", encoding="utf-8") as file:
             version = file.read()
         if version:
