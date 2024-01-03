@@ -3,7 +3,7 @@ DIG PW Patcher Proxy
 [![License](https://img.shields.io/badge/license-CC_BY--ND_4.0-blue
 )](https://creativecommons.org/licenses/by-nd/4.0/)
 [![Python Version](https://img.shields.io/badge/python-3.8_%7C_3.9_%7C_3.10_%7C_3.11_%7C_3.12-blue)](https://github.com/DIG-/python-pw-patcher-proxy/)
-[![Version](https://img.shields.io/badge/version-v0.2.0-blue)](https://github.com/DIG-/python-pw-patcher-proxy/)
+[![Version](https://img.shields.io/badge/version-v0.2.1-blue)](https://github.com/DIG-/python-pw-patcher-proxy/)
 
 [![Windows - Supported](https://img.shields.io/badge/windows-supported-success?logo=windows&logoColor=dddddd)](#)
 [![Linux - Supported](https://img.shields.io/badge/linux-supported-success?logo=linux&logoColor=dddddd)](#)
@@ -50,7 +50,7 @@ python -m pip install .
 ### Option 2:
 - Open terminal and execute:
 ```sh
-python -m pip install "https://github.com/DIG-/python-pw-patcher-proxy/releases/download/0.2.0/dig_pw_patcher_proxy-0.2.0-py3-none-any.whl"
+python -m pip install "https://github.com/DIG-/python-pw-patcher-proxy/releases/download/0.2.1/dig_pw_patcher_proxy-0.2.1-py3-none-any.whl"
 ```
 
 Uninstall
