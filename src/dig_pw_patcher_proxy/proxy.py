@@ -37,6 +37,8 @@ class _Handler(BaseHTTPRequestHandler):
             found = re_search(r"element/(v-[\d]+).inc", path)
             if found:
                 self.downloader.start(found.group(1))
+            if path.startswith("element/element/"):
+                self.log.warning(f"Cache miss for /{path}")
             with urlopen(f"{self.original_url}{path}") as content:
                 self.send_response(HTTPStatus.OK)
                 self.send_header("Content-Type", "application/octet-stream")
