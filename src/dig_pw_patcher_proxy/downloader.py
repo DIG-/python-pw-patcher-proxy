@@ -46,6 +46,7 @@ class _ConnectionPool:
 
 class Downloader:
     CURRENT = "downloader-current"
+    PREFIX = "element/element/"
 
     def __init__(self, cache: Cache, server: str, jobs: int):
         self.cache = cache
@@ -124,12 +125,12 @@ class Downloader:
         self.cache.get(Downloader.CURRENT).unlink()
 
     def download(self, url: str) -> bool:
-        path = url[1:]
+        path = Downloader.PREFIX + url[1:]
         if self.cache.exists(path):
             return True
         self.log.debug(f"Caching {url}")
         connection = self.connections.get()
-        connection.request("GET", f"{self.path}element/element/{path}", headers={"Host": self.host, "Accept": "*/*"})
+        connection.request("GET", f"{self.path}{path}", headers={"Host": self.host, "Accept": "*/*"})
         response = connection.getresponse()
         if response.status != HTTPStatus.OK:
             response.close()
